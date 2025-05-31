@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Master's Program Comparison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #3d405b;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 96;
+            max-height: 500px;
+        }
+        .highlight-card-section {
+            background-color: #e0f2f1 !important;
+            border: 2px solid #4db6ac;
+            transition: all 0.3s ease-in-out;
+            transform: scale(1.02);
+        }
+        .program-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .program-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        .filter-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .filter-btn.active {
+            background-color: #00796b;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#344e41]">Master's Program Decision Dashboard</h1>
+            <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">An interactive tool to compare graduate programs based on your profile. Use the charts for a high-level overview and the filter buttons to compare specific details on the program cards.</p>
+        </header>
+
+        <section id="charts" class="mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-center mb-4 text-[#3a5a40]">Program Profile Comparison</h2>
+                    <p class="text-center text-gray-500 mb-4 text-sm">A visual summary of key institutional strengths. Higher values toward the edge indicate a stronger profile in that area.</p>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-center mb-4 text-[#3a5a40]">Admission Profile (For You)</h2>
+                    <p class="text-center text-gray-500 mb-4 text-sm">An estimated likelihood of admission based on your background and the general competitiveness of each program.</p>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison-tool" class="mb-12">
+             <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-center mb-4 text-[#3a5a40]">Highlight Criteria</h2>
+                <p class="text-center text-gray-500 mb-6">Click a button to highlight the corresponding section on all program cards below.</p>
+                <div id="filter-buttons" class="flex flex-wrap justify-center gap-2 md:gap-3">
+                </div>
+            </div>
+        </section>
+
+        <section id="program-cards">
+            <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+            </div>
+        </section>
+
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>This dashboard is an interactive visualization based on the provided report data. Please verify all program details directly with the universities.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const programData = [
+            {
+                id: 'towson-ait',
+                name: 'Towson University',
+                program: 'M.S. in Applied Information Technology (AIT)',
+                color: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                data: {
+                    'Primary Specialty': 'Applied IT, IT Management, various technical specializations (Networking, InfoSec, Software Eng, Database Mgmt).',
+                    'Program Costs (Tuition & Fees)': "Moderate. *Verify current rates on Towson's website.*",
+                    'Return on Investment (ROI) Potential': 'Good, especially for advancing in technical or IT management roles. Practical skills are immediately applicable.',
+                    'Potential Job Titles Post Degree': 'IT Manager, Sr. Systems Administrator/Engineer, Network Architect, IT Project Manager, Cybersecurity Analyst (with specialization), Database Admin.',
+                    'Program Length (Part-Time)': 'Typically 2.5 - 4 years, depending on course load per semester.',
+                    'Course Delivery Type': 'Flexible: In-person (often evenings), Hybrid, some Online options.',
+                    'Minimum Program Requirements (General)': "Bachelor's degree, relevant GPA (3.0 often preferred, but holistic review), sometimes work experience recommended/preferred.",
+                    'Ease of Admission (for You)': '**High:** Your practical experience, GPA, and certifications align well with applied programs.',
+                    'Alumni Network Strength': 'Good',
+                    'Career Services': 'Good',
+                    'Industry Connections': 'Good',
+                    'Reputation': 'Good',
+                    'Student Community': 'Often diverse, many working professionals, focus on practical application.'
+                }
+            },
+            {
+                id: 'umd-msis',
+                name: 'University of Maryland',
+                program: 'Smith M.S. in Information Systems (MSIS)',
+                color: 'rgba(255, 99, 132, 0.7)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                data: {
+                    'Primary Specialty': 'IT Strategy, Business Intelligence/Analytics, IT Consulting, Management of Digital Innovation.',
+                    'Program Costs (Tuition & Fees)': "Higher (Business School premium). *Verify current rates on UMD Smith's website.*",
+                    'Return on Investment (ROI) Potential': 'Potentially Very Good, for roles at the intersection of business and IT, consulting, or management. Strong Smith School network.',
+                    'Potential Job Titles Post Degree': 'IT Consultant, Business Analyst, Data Analyst, Product Manager, IT Project Manager (Business Focus), IT Risk Manager, Systems Analyst.',
+                    'Program Length (Part-Time)': 'Typically 2 - 3 years, may have structured part-time cohorts. *Verify specifics.*',
+                    'Course Delivery Type': 'Primarily In-Person (College Park campus), may have some hybrid elements. Structured schedules.',
+                    'Minimum Program Requirements (General)': "Bachelor's degree, competitive GPA, GMAT/GRE often required (waivers possible based on experience/academics), essays, recommendations.",
+                    'Ease of Admission (for You)': '**Moderate:** Smith is competitive. Your experience is a strong plus, but GPA will be a factor. Strong application needed.',
+                    'Alumni Network Strength': 'Very Strong',
+                    'Career Services': 'Excellent',
+                    'Industry Connections': 'Excellent',
+                    'Reputation': 'Excellent',
+                    'Student Community': 'Professional, often cohort-based, diverse backgrounds, emphasis on networking and leadership.'
+                }
+            },
+            {
+                id: 'umbc-msis',
+                name: 'UMBC',
+                program: 'M.S. in Information Systems (MSIS)',
+                color: 'rgba(255, 206, 86, 0.7)',
+                borderColor: 'rgba(255, 206, 86, 1)',
+                data: {
+                    'Primary Specialty': 'Systems Analysis & Design, IT Project Management, Data Management, IT Strategy, User Experience, Health IT.',
+                    'Program Costs (Tuition & Fees)': "Moderate to Higher. *Verify current rates on UMBC's website.*",
+                    'Return on Investment (ROI) Potential': 'Good to Very Good, provides a versatile skill set for various IS and management roles. Strong regional reputation.',
+                    'Potential Job Titles Post Degree': 'IS Manager, IT Project Manager, Systems Analyst, Business Systems Analyst, IT Consultant, Database Manager, UX Designer (with specialization), Health IT Specialist.',
+                    'Program Length (Part-Time)': 'Typically 2.5 - 4 years, designed to be flexible for working professionals.',
+                    'Course Delivery Type': 'Flexible: In-person (often evenings at main campus or UMBC-Shady Grove), Hybrid, growing Online options.',
+                    'Minimum Program Requirements (General)': "Bachelor's degree, relevant GPA (3.0 often preferred, but holistic review), statement of purpose, recommendations. Work experience valued.",
+                    'Ease of Admission (for You)': '**High:** UMBC values experience. Your profile should be competitive for their IS program.',
+                    'Alumni Network Strength': 'Strong',
+                    'Career Services': 'Strong',
+                    'Industry Connections': 'Very Good',
+                    'Reputation': 'Very Good',
+                    'Student Community': 'Diverse, many working professionals, strong international student presence, active student organizations.'
+                }
+            },
+            {
+                id: 'umbc-cyber',
+                name: 'UMBC',
+                program: 'M.S. in Cybersecurity',
+                color: 'rgba(75, 192, 192, 0.7)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                data: {
+                    'Primary Specialty': 'Cyber Defense, Network Security, Secure Software, Cyber Operations, Cybersecurity Policy & Management.',
+                    'Program Costs (Tuition & Fees)': "Moderate to Higher. *Verify current rates on UMBC's website.*",
+                    'Return on Investment (ROI) Potential': 'Very Good to Excellent, high demand for cybersecurity professionals often leads to strong salary prospects.',
+                    'Potential Job Titles Post Degree': 'Cybersecurity Analyst/Engineer, Security Consultant, Penetration Tester, Security Architect, Incident Responder, Cybersecurity Manager, CISO (eventually), Security Auditor.',
+                    'Program Length (Part-Time)': 'Typically 2.5 - 4 years, designed to be flexible for working professionals.',
+                    'Course Delivery Type': 'Flexible: In-person (often evenings at main campus or UMBC-Shady Grove), Hybrid, growing Online options.',
+                    'Minimum Program Requirements (General)': "Bachelor's degree (often in CS, IT, or related field, or foundational IT knowledge/experience), relevant GPA (3.0 often preferred), statement of purpose, recommendations.",
+                    'Ease of Admission (for You)': '**Good to High:** Your sysadmin background and Azure cert are relevant. Strong interest and aptitude for technical security aspects needed.',
+                    'Alumni Network Strength': 'Strong',
+                    'Career Services': 'Strong',
+                    'Industry Connections': 'Excellent',
+                    'Reputation': 'Excellent',
+                    'Student Community': 'Diverse, many working professionals and students focused on a highly technical field, active cyber-focused student groups.'
+                }
+            }
+        ];
+        
+        const ratingMap = { 'Good': 3, 'Strong': 4, 'Very Good': 4, 'Excellent': 5, 'Very Strong': 5 };
+        const admissionMap = { 'High': 3, 'Good to High': 2.5, 'Moderate': 2 };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cardsContainer = document.getElementById('cards-container');
+            const filterButtonsContainer = document.getElementById('filter-buttons');
+            const criteria = Object.keys(programData[0].data);
+
+            programData.forEach(school => {
+                let cardHTML = `<div class="program-card bg-white rounded-xl shadow-lg p-6 flex flex-col">`;
+                cardHTML += `<h3 class="text-2xl font-bold text-center text-[#3a5a40]">${school.name}</h3>`;
+                cardHTML += `<p class="text-center text-gray-500 mb-4 font-medium">${school.program}</p>`;
+                cardHTML += `<div class="space-y-4 flex-grow">`
+                criteria.forEach(criterion => {
+                    const criterionId = criterion.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-');
+                    cardHTML += `<div id="${school.id}-${criterionId}" data-criterion="${criterionId}" class="p-4 rounded-lg bg-gray-50 border border-gray-200 transition-all duration-300">
+                                    <h4 class="font-bold text-sm text-[#588157]">${criterion}</h4>
+                                    <p class="text-gray-700 text-sm mt-1">${school.data[criterion]}</p>
+                                 </div>`;
+                });
+                cardHTML += `</div></div>`;
+                cardsContainer.innerHTML += cardHTML;
+            });
+            
+            criteria.forEach(criterion => {
+                const criterionId = criterion.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-');
+                const button = document.createElement('button');
+                button.textContent = criterion;
+                button.classList.add('filter-btn', 'px-4', 'py-2', 'text-sm', 'font-medium', 'rounded-full', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                button.dataset.criterion = criterionId;
+                filterButtonsContainer.appendChild(button);
+            });
+            
+            let activeFilter = null;
+            filterButtonsContainer.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') {
+                    const criterionId = e.target.dataset.criterion;
+
+                    document.querySelectorAll('.highlight-card-section').forEach(el => el.classList.remove('highlight-card-section'));
+                    
+                    if (activeFilter === criterionId) {
+                        activeFilter = null;
+                         e.target.classList.remove('active');
+                    } else {
+                        document.querySelectorAll(`[data-criterion="${criterionId}"]`).forEach(el => {
+                            el.classList.add('highlight-card-section');
+                        });
+                        if(activeFilter) {
+                           document.querySelector(`button[data-criterion="${activeFilter}"]`).classList.remove('active');
+                        }
+                        e.target.classList.add('active');
+                        activeFilter = criterionId;
+                    }
+                }
+            });
+
+            createRadarChart();
+            createBarChart();
+        });
+
+        function createRadarChart() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const labels = ['Reputation', 'Industry Connections', 'Alumni Network', 'Career Services'];
+            const datasets = programData.map(school => ({
+                label: school.name,
+                data: [
+                    ratingMap[school.data.Reputation] || 0,
+                    ratingMap[school.data['Industry Connections']] || 0,
+                    ratingMap[school.data['Alumni Network Strength']] || 0,
+                    ratingMap[school.data['Career Services']] || 0,
+                ],
+                backgroundColor: school.color,
+                borderColor: school.borderColor,
+                borderWidth: 2,
+                pointBackgroundColor: school.borderColor,
+                pointRadius: 4
+            }));
+            
+            new Chart(ctx, {
+                type: 'radar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.r;
+                                    const stringValue = Object.keys(ratingMap).find(key => ratingMap[key] === value) || 'N/A';
+                                    label += stringValue;
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            pointLabels: { font: { size: 12 }, color: '#3d405b' },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                             ticks: {
+                                stepSize: 1,
+                                backdropColor: 'rgba(255, 255, 255, 0)',
+                                color: '#888',
+                                 callback: function(value, index, values) {
+                                    const labels = ['N/A', '', 'Fair', 'Good', 'Strong', 'Excellent'];
+                                    return labels[value];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createBarChart() {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            const labels = programData.map(school => school.name);
+            const data = programData.map(school => {
+                const easeText = school.data['Ease of Admission (for You)'].split('**')[1].split(':')[0];
+                return admissionMap[easeText] || 0;
+            });
+             const backgroundColors = programData.map(school => school.color);
+             const borderColors = programData.map(school => school.borderColor);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ease of Admission Score',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                         tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.x;
+                                    const stringValue = Object.keys(admissionMap).find(key => admissionMap[key] === value) || 'N/A';
+                                    label += stringValue;
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            suggestedMax: 3.5,
+                            ticks: {
+                                stepSize: 0.5,
+                                callback: function(value, index, values) {
+                                    const labels = {0: 'N/A', 1: 'Low', 2: 'Moderate', 3: 'High'};
+                                    return labels[value] || '';
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false,
+                                callback: function(value, index, values) {
+                                    const label = this.getLabelForValue(value);
+                                    const school = programData.find(s => s.name === label);
+                                    if(window.innerWidth < 768) {
+                                       return label;
+                                    }
+                                    return [label, school.program];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
